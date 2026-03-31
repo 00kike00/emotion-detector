@@ -68,3 +68,6 @@ reports/
 
 # Notes
 NOTES.md
+
+# Models
+vision_expert_best.pth
