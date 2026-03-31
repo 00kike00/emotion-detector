@@ -21,3 +21,9 @@
 * plots folder
 * Obtained best parameters for vision model
 * Obtained best vision model
+* README for the models
+
+# 2026-04-01
+
+* Added folder: inference
+* Created inference_vision.py
