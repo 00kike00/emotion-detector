@@ -27,3 +27,4 @@
 
 * Added folder: inference
 * Created inference_vision.py
+* Changed Joy with happiness in the ekman_mapping.json

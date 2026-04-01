@@ -2,15 +2,9 @@ import pandas as pd
 import torch
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
+from transformers import RobertaTokenizer
 from PIL import Image
-from src.config import FER_DIR, BATCH_SIZE
-
-import pandas as pd
-import torch
-from torch.utils.data import Dataset, DataLoader
-from torchvision import transforms
-from PIL import Image
-from src.config import FER_DIR, BATCH_SIZE
+from src.config import FER_DIR, GOEMOTIONS_DIR, BATCH_SIZE
 
 class FERPlusWinnerDataset(Dataset):
     def __init__(self, csv_file, img_dir, transform=None, usage='Training'):
@@ -92,3 +86,50 @@ def get_fer_loaders():
     )
 
     return train_loader, valid_loader, test_loader
+
+
+class TextEmotionDataset(Dataset):
+    def __init__(self, tsv_path, tokenizer, max_len=64):
+        # GoEmotions TSV structure: [text, label_ids, id]
+        self.df = pd.read_csv(tsv_path, sep='\t', header=None, names=['text', 'labels', 'id'])
+        self.tokenizer = tokenizer
+        self.max_len = max_len
+        
+        # Simple Mapping logic (You can refine this based on your ekman_mapping.json)
+        # For now, we take the first label if multiple exist
+        self.df['primary_label'] = self.df['labels'].apply(lambda x: int(str(x).split(',')[0]))
+
+    def __len__(self):
+        return len(self.df)
+
+    def __getitem__(self, item):
+        text = str(self.df.iloc[item].text)
+        label = self.df.iloc[item].primary_label
+
+        encoding = self.tokenizer.encode_plus(
+            text,
+            add_special_tokens=True,
+            max_length=self.max_len,
+            padding='max_length',
+            truncation=True,
+            return_tensors='pt'
+        )
+
+        return {
+            'input_ids': encoding['input_ids'].flatten(),
+            'attention_mask': encoding['attention_mask'].flatten(),
+            'label': torch.tensor(label, dtype=torch.long)
+        }
+
+def get_text_loaders():
+    tokenizer = RobertaTokenizer.from_pretrained('roberta-base')
+    
+    train_ds = TextEmotionDataset(GOEMOTIONS_DIR / "train.tsv", tokenizer)
+    test_ds = TextEmotionDataset(GOEMOTIONS_DIR / "test.tsv", tokenizer)
+    val_ds = TextEmotionDataset(GOEMOTIONS_DIR / "validation.tsv", tokenizer)
+
+    train_loader = DataLoader(train_ds, batch_size=BATCH_SIZE, shuffle=True)
+    test_loader = DataLoader(test_ds, batch_size=BATCH_SIZE)
+    val_loader = DataLoader(val_ds, batch_size=BATCH_SIZE)
+
+    return train_loader, val_loader, test_loader
