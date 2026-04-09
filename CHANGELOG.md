@@ -23,8 +23,27 @@
 * Obtained best vision model
 * README for the models
 
-# 2026-04-01
+## 2026-04-01
 
 * Added folder: inference
 * Created inference_vision.py
 * Changed Joy with happiness in the ekman_mapping.json
+* Defined Text model architecture
+* Created train_text_apso.py
+
+## 2026-04-02
+
+* train_text.py
+* saved text model
+* eval_text.py
+* saved results
+* inference_text.py
+
+## 2026-04-04
+
+* EDAs for the three datasets (they were done previously but I wanted to polish them a little before adding them)
+* Feature extraction
+
+## 2026-04-05
+
+* New training using macro F1-score instead of accuracy

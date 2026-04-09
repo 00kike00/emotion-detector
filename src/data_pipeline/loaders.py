@@ -5,6 +5,8 @@ from torchvision import transforms
 from transformers import RobertaTokenizer
 from PIL import Image
 from src.config import FER_DIR, GOEMOTIONS_DIR, BATCH_SIZE
+import json
+from pathlib import Path
 
 class FERPlusWinnerDataset(Dataset):
     def __init__(self, csv_file, img_dir, transform=None, usage='Training'):
@@ -89,24 +91,65 @@ def get_fer_loaders():
 
 
 class TextEmotionDataset(Dataset):
-    def __init__(self, tsv_path, tokenizer, max_len=64):
-        # GoEmotions TSV structure: [text, label_ids, id]
-        self.df = pd.read_csv(tsv_path, sep='\t', header=None, names=['text', 'labels', 'id'])
+    EMOTION_TO_IDX = {
+        'neutral': 0, 'happiness': 1, 'surprise': 2, 'sadness': 3, 
+        'anger': 4, 'disgust': 5, 'fear': 6
+    }
+
+    def __init__(self, tsv_path, tokenizer, mapping_path, emotions_path, max_len=32):
         self.tokenizer = tokenizer
         self.max_len = max_len
         
-        # Simple Mapping logic (You can refine this based on your ekman_mapping.json)
-        # For now, we take the first label if multiple exist
-        self.df['primary_label'] = self.df['labels'].apply(lambda x: int(str(x).split(',')[0]))
+        # 1. Load the 28 emotion names from emotions.txt
+        with open(emotions_path, 'r') as f:
+            idx_to_goemotions = [line.strip() for line in f if line.strip()]
+
+        # 2. Load and invert mapping (28 emotions -> 7 Ekman)
+        with open(mapping_path, 'r') as f:
+            mapping_json = json.load(f)
+
+        # Invert: {'anger': ['anger', 'annoyance']} -> {'anger': 'anger', 'annoyance': 'anger'}
+        go_to_7 = {}
+        for seven_class, go_list in mapping_json.items():
+            for go_name in go_list:
+                go_to_7[go_name] = seven_class
+        
+        # Ensure 'neutral' is mapped 
+        if 'neutral' not in go_to_7:
+            go_to_7['neutral'] = 'neutral'
+
+        # 3. Load Raw Data
+        df_raw = pd.read_csv(tsv_path, sep='\t', header=None, names=['text', 'labels', 'id'])
+
+        # 4. Map and Filter
+        valid_rows = []
+        for _, row in df_raw.iterrows():
+            # Get first label index and convert to name
+            first_idx = int(str(row['labels']).split(',')[0])
+            go_name = idx_to_goemotions[first_idx]
+            
+            # Convert name to 7-class name
+            mapped_name = go_to_7.get(go_name)
+            
+            # Convert 7-class name to numeric ID (0-6)
+            if mapped_name in self.EMOTION_TO_IDX:
+                valid_rows.append({
+                    'text': row['text'],
+                    'label': self.EMOTION_TO_IDX[mapped_name]
+                })
+
+        self.df = pd.DataFrame(valid_rows)
+        print(f"[Dataset] {Path(tsv_path).name} | Samples: {len(self.df)}")
 
     def __len__(self):
         return len(self.df)
 
     def __getitem__(self, item):
-        text = str(self.df.iloc[item].text)
-        label = self.df.iloc[item].primary_label
+        row = self.df.iloc[item]
+        text = str(row.text)
+        label = row.label
 
-        encoding = self.tokenizer.encode_plus(
+        encoding = self.tokenizer(
             text,
             add_special_tokens=True,
             max_length=self.max_len,
@@ -124,12 +167,29 @@ class TextEmotionDataset(Dataset):
 def get_text_loaders():
     tokenizer = RobertaTokenizer.from_pretrained('roberta-base')
     
-    train_ds = TextEmotionDataset(GOEMOTIONS_DIR / "train.tsv", tokenizer)
-    test_ds = TextEmotionDataset(GOEMOTIONS_DIR / "test.tsv", tokenizer)
-    val_ds = TextEmotionDataset(GOEMOTIONS_DIR / "validation.tsv", tokenizer)
+    # Define paths
+    mapping = GOEMOTIONS_DIR / "ekman_mapping.json"
+    emotions = GOEMOTIONS_DIR / "emotions.txt"
 
-    train_loader = DataLoader(train_ds, batch_size=BATCH_SIZE, shuffle=True)
-    test_loader = DataLoader(test_ds, batch_size=BATCH_SIZE)
-    val_loader = DataLoader(val_ds, batch_size=BATCH_SIZE)
+    train_ds = TextEmotionDataset(GOEMOTIONS_DIR / "train.tsv", tokenizer, mapping, emotions)
+    val_ds   = TextEmotionDataset(GOEMOTIONS_DIR / "dev.tsv",   tokenizer, mapping, emotions)
+    test_ds  = TextEmotionDataset(GOEMOTIONS_DIR / "test.tsv",  tokenizer, mapping, emotions)
+
+    # BATCH_SIZE//2 is used here to reduce GPU memory usage, since text models can be large. Adjust as needed.
+    train_loader = DataLoader(
+        train_ds, batch_size=BATCH_SIZE//2, shuffle=True, 
+        num_workers=8, pin_memory=True, 
+        persistent_workers=True, prefetch_factor=4
+    )
+    val_loader   = DataLoader(
+        val_ds, batch_size=BATCH_SIZE//2, shuffle=True, 
+        num_workers=4, pin_memory=True, 
+        persistent_workers=True, prefetch_factor=4
+    )
+    test_loader  = DataLoader(
+        test_ds, batch_size=BATCH_SIZE//2, shuffle=True, 
+        num_workers=4, pin_memory=True, 
+        persistent_workers=True, prefetch_factor=4
+    )
 
     return train_loader, val_loader, test_loader

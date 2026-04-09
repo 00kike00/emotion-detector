@@ -12,7 +12,7 @@ PROCESSED_DIR = DATA_DIR / "processed"
 
 # Dataset Specific Paths
 FER_DIR = RAW_DIR / "FER2013"
-GOEMOTIONS_DIR = RAW_DIR / "GoEmotions"
+GOEMOTIONS_DIR = RAW_DIR / "GoEmotions" / "data"
 MELD_DIR = RAW_DIR / "MELD"
 
 # 3. MODEL & CHECKPOINT PATHS
