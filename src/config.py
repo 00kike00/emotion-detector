@@ -14,6 +14,7 @@ PROCESSED_DIR = DATA_DIR / "processed"
 FER_DIR = RAW_DIR / "FER2013"
 GOEMOTIONS_DIR = RAW_DIR / "GoEmotions" / "data"
 MELD_DIR = RAW_DIR / "MELD"
+RAVDESS_DIR = RAW_DIR / "RAVDESS" / "Audio_Speech_Actors_01-24"
 
 # 3. MODEL & CHECKPOINT PATHS
 MODELS_DIR = BASE_DIR / "models"

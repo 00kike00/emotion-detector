@@ -2,9 +2,11 @@ import pandas as pd
 import torch
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
+import torchaudio
+import torchaudio.transforms as AT
 from transformers import RobertaTokenizer
 from PIL import Image
-from src.config import FER_DIR, GOEMOTIONS_DIR, BATCH_SIZE
+from src.config import FER_DIR, GOEMOTIONS_DIR, RAVDESS_DIR, MELD_DIR, BATCH_SIZE
 import json
 from pathlib import Path
 
@@ -191,5 +193,165 @@ def get_text_loaders():
         num_workers=4, pin_memory=True, 
         persistent_workers=True, prefetch_factor=4
     )
+
+    return train_loader, val_loader, test_loader
+
+
+
+SAMPLE_RATE    = 22050
+N_MELS         = 64
+N_FFT          = 1024
+HOP_LENGTH     = 512
+MAX_FRAMES     = 128  # fixed width — pad or crop spectrogram to this
+
+
+class RAVDESSDataset(Dataset):
+    RAVDESS_EMOTIONS = {
+    '01': 'neutral',
+    '03': 'happiness',
+    '04': 'sadness',
+    '05': 'anger',
+    '06': 'fear',
+    '07': 'disgust',
+    '08': 'surprise',
+    }  # '02' calm is dropped
+
+    TARGET_EMOTIONS = ['neutral', 'happiness', 'surprise', 'sadness',
+                    'anger', 'disgust', 'fear']
+    EMOTION_TO_IDX = {e: i for i, e in enumerate(TARGET_EMOTIONS)}
+
+    def __init__(self, file_list, augment=False):
+        self.file_list = file_list
+        self.augment   = augment
+
+        self.mel = AT.MelSpectrogram(
+            sample_rate=SAMPLE_RATE,
+            n_fft=N_FFT,
+            hop_length=HOP_LENGTH,
+            n_mels=N_MELS,
+        )
+        self.to_db = AT.AmplitudeToDB()
+
+        # SpecAugment — applied on spectrogram during augmentation
+        self.time_mask = AT.TimeMasking(time_mask_param=20)
+        self.freq_mask = AT.FrequencyMasking(freq_mask_param=8)
+
+    def __len__(self):
+        return len(self.file_list)
+
+    def _parse_label(self, path):
+        parts = path.stem.split('-')
+        emotion_code = parts[2]
+        return self.RAVDESS_EMOTIONS.get(emotion_code, None)
+
+    def _load_and_resample(self, path):
+        waveform, sr = torchaudio.load(path)
+        if sr != SAMPLE_RATE:
+            waveform = AT.Resample(sr, SAMPLE_RATE)(waveform)
+        # Mix to mono
+        if waveform.shape[0] > 1:
+            waveform = waveform.mean(dim=0, keepdim=True)
+        return waveform
+
+    def _add_noise(self, waveform, snr_db=20):
+        noise = torch.randn_like(waveform)
+        signal_power = waveform.norm(p=2)
+        noise_power  = noise.norm(p=2)
+        scale = (signal_power / noise_power) * (10 ** (-snr_db / 20))
+        return waveform + scale * noise
+
+    def _to_spectrogram(self, waveform):
+        spec = self.mel(waveform)        # [1, N_MELS, T]
+        spec = self.to_db(spec)
+
+        # Normalize to [0, 1]
+        spec = (spec - spec.min()) / (spec.max() - spec.min() + 1e-6)
+
+        # Pad or crop to fixed width
+        T = spec.shape[2]
+        if T < MAX_FRAMES:
+            spec = torch.nn.functional.pad(spec, (0, MAX_FRAMES - T))
+        else:
+            spec = spec[:, :, :MAX_FRAMES]
+
+        return spec  # [1, N_MELS, MAX_FRAMES]
+
+    def __getitem__(self, idx):
+        path  = self.file_list[idx]
+        label = self._parse_label(path)
+
+        waveform = self._load_and_resample(path)
+
+        if self.augment:
+            if torch.rand(1) < 0.5:
+                waveform = self._add_noise(waveform, snr_db=20)
+
+        spec = self._to_spectrogram(waveform)
+
+        if self.augment:
+            if torch.rand(1) < 0.5:
+                spec = self.time_mask(spec)
+            if torch.rand(1) < 0.5:
+                spec = self.freq_mask(spec)
+
+        return spec, torch.tensor(self.EMOTION_TO_IDX[label], dtype=torch.long)
+
+
+def get_ravdess_files():
+    """Collect audio-only speech files, drop calm (02)."""
+    RAVDESS_EMOTIONS = {
+    '01': 'neutral',
+    '03': 'happiness',
+    '04': 'sadness',
+    '05': 'anger',
+    '06': 'fear',
+    '07': 'disgust',
+    '08': 'surprise',
+    }  # '02' calm is dropped
+    all_files = []
+    for actor_dir in sorted(RAVDESS_DIR.iterdir()):
+        if not actor_dir.is_dir():
+            continue
+        for wav in actor_dir.glob('*.wav'):
+            parts = wav.stem.split('-')
+            emotion  = parts[2]
+            if emotion not in RAVDESS_EMOTIONS:  # drops calm
+                continue
+            all_files.append(wav)
+    return all_files
+
+
+def get_ravdess_loaders(val_actors=(23, 24), test_actors=(21, 22),
+                        batch_size=32):
+    """
+    Speaker-independent split: hold out 2 actors for val, 2 for test.
+    """
+    all_files = get_ravdess_files()
+
+    train_files, val_files, test_files = [], [], []
+    for f in all_files:
+        actor_id = int(f.stem.split('-')[6])
+        if actor_id in test_actors:
+            test_files.append(f)
+        elif actor_id in val_actors:
+            val_files.append(f)
+        else:
+            train_files.append(f)
+
+    print(f"[RAVDESS] Train={len(train_files)} | Val={len(val_files)} | Test={len(test_files)}")
+
+    train_ds = RAVDESSDataset(train_files, augment=True)
+    val_ds   = RAVDESSDataset(val_files,   augment=False)
+    test_ds  = RAVDESSDataset(test_files,  augment=False)
+
+    train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=True,
+                              num_workers=4, pin_memory=True,
+                              persistent_workers=True, prefetch_factor=2)
+    val_loader   = DataLoader(val_ds,   batch_size=batch_size, shuffle=False,
+                              num_workers=2, pin_memory=True,
+                              persistent_workers=True, prefetch_factor=2)
+    test_loader  = DataLoader(test_ds,  batch_size=batch_size, shuffle=False,
+                              num_workers=2, pin_memory=True,
+                              persistent_workers=True, prefetch_factor=2)
 
     return train_loader, val_loader, test_loader
