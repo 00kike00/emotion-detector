@@ -7,11 +7,11 @@ class AudioNet(nn.Module):
     def __init__(self, dropout_rate=0.3, hidden_units=256, num_classes=7):
         """
         CNN for RAVDESS Speech Emotion Recognition.
-        Designed for audio spectrogram input of shape [1, 64, 128].
+        Designed for audio spectrogram input of shape [1, 128, 172].
         """
         super(AudioNet, self).__init__()
 
-        # Block 1: [1, 64, 128] -> [32, 32, 64]
+        # Block 1: [1, 128, 172] -> [32, 64, 86]
         self.conv1 = nn.Conv2d(1,  32, kernel_size=3, padding=1)
         self.bn1   = nn.BatchNorm2d(32)
         self.conv2 = nn.Conv2d(32, 32, kernel_size=3, padding=1)

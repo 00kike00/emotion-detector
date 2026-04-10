@@ -47,3 +47,9 @@
 ## 2026-04-05
 
 * New training using macro F1-score instead of accuracy
+
+## 2026-04-10
+
+* Audio Net
+* Audio net architecture
+* Audio net trainer

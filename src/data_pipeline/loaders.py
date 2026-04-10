@@ -9,6 +9,7 @@ from PIL import Image
 from src.config import FER_DIR, GOEMOTIONS_DIR, RAVDESS_DIR, MELD_DIR, BATCH_SIZE
 import json
 from pathlib import Path
+import soundfile as sf
 
 class FERPlusWinnerDataset(Dataset):
     def __init__(self, csv_file, img_dir, transform=None, usage='Training'):
@@ -199,10 +200,10 @@ def get_text_loaders():
 
 
 SAMPLE_RATE    = 22050
-N_MELS         = 64
+N_MELS         = 128
 N_FFT          = 1024
 HOP_LENGTH     = 512
-MAX_FRAMES     = 128  # fixed width — pad or crop spectrogram to this
+MAX_FRAMES     = 172  # fixed width — pad or crop spectrogram to this
 
 
 class RAVDESSDataset(Dataset):
@@ -245,12 +246,25 @@ class RAVDESSDataset(Dataset):
         return self.RAVDESS_EMOTIONS.get(emotion_code, None)
 
     def _load_and_resample(self, path):
-        waveform, sr = torchaudio.load(path)
-        if sr != SAMPLE_RATE:
-            waveform = AT.Resample(sr, SAMPLE_RATE)(waveform)
+        waveform, sr = sf.read(str(path), dtype='float32')
+    
+        # soundfile returns [samples] or [samples, channels] — convert to [channels, samples]
+        if waveform.ndim == 1:
+            waveform = waveform[None, :]          # [1, samples]
+        else:
+            waveform = waveform.T                 # [channels, samples]
+        
+        waveform = torch.tensor(waveform)
+        
         # Mix to mono
         if waveform.shape[0] > 1:
             waveform = waveform.mean(dim=0, keepdim=True)
+        
+        # Resample if needed
+        if sr != SAMPLE_RATE:
+            resampler = torchaudio.transforms.Resample(sr, SAMPLE_RATE)
+            waveform = resampler(waveform)
+        
         return waveform
 
     def _add_noise(self, waveform, snr_db=20):
@@ -265,7 +279,7 @@ class RAVDESSDataset(Dataset):
         spec = self.to_db(spec)
 
         # Normalize to [0, 1]
-        spec = (spec - spec.min()) / (spec.max() - spec.min() + 1e-6)
+        spec = spec = (spec + 40) / 40  # RAVDESS has a min around -40dB, so this roughly scales to [0, 1]
 
         # Pad or crop to fixed width
         T = spec.shape[2]
@@ -321,8 +335,7 @@ def get_ravdess_files():
     return all_files
 
 
-def get_ravdess_loaders(val_actors=(23, 24), test_actors=(21, 22),
-                        batch_size=32):
+def get_ravdess_loaders(val_actors=(23, 24), test_actors=(21, 22)):
     """
     Speaker-independent split: hold out 2 actors for val, 2 for test.
     """
@@ -344,14 +357,14 @@ def get_ravdess_loaders(val_actors=(23, 24), test_actors=(21, 22),
     val_ds   = RAVDESSDataset(val_files,   augment=False)
     test_ds  = RAVDESSDataset(test_files,  augment=False)
 
-    train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=True,
+    train_loader = DataLoader(train_ds, batch_size=BATCH_SIZE//8, shuffle=True,
+                              num_workers=8, pin_memory=True,
+                              persistent_workers=True, prefetch_factor=2)
+    val_loader   = DataLoader(val_ds,   batch_size=BATCH_SIZE//8, shuffle=False,
                               num_workers=4, pin_memory=True,
                               persistent_workers=True, prefetch_factor=2)
-    val_loader   = DataLoader(val_ds,   batch_size=batch_size, shuffle=False,
-                              num_workers=2, pin_memory=True,
-                              persistent_workers=True, prefetch_factor=2)
-    test_loader  = DataLoader(test_ds,  batch_size=batch_size, shuffle=False,
-                              num_workers=2, pin_memory=True,
+    test_loader  = DataLoader(test_ds,  batch_size=BATCH_SIZE//8, shuffle=False,
+                              num_workers=4, pin_memory=True,
                               persistent_workers=True, prefetch_factor=2)
 
     return train_loader, val_loader, test_loader
