@@ -53,3 +53,11 @@
 * Audio Net
 * Audio net architecture
 * Audio net trainer
+
+## 2026-04-10
+
+* llm_wrapper folder
+* llm_wrapper.py
+* system_prompt.txt
+* llm_demo.py
+* main_demo.py

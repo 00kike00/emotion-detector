@@ -31,7 +31,13 @@ IMG_SIZE = 48          # Standard for FER2013
 BATCH_SIZE = 128       # Larger batch size for faster training, adjust based on GPU memory
 NUM_CLASSES = 7        # Anger, Disgust, Fear, Happiness, Sadness, Surprise, Neutral
 
-# 6. APSO SETTINGS (For train_vision_apso.py)
+# 6. LLM SETTINGS
+LLM_MODEL = "gemma3:1b"
+LLM_PATH = BASE_DIR / "src" / "llm_wrapper"
+LLM_PROMPT_PATH = LLM_PATH / "system_prompt.txt"
+
+
+# 6. APSO SETTINGS (For Hyperparameter Optimization)
 APSO_ITERATIONS = 10
 APSO_PARTICLES = 10
 PROXY_EPOCHS = 5       # How many epochs to run for each particle test
