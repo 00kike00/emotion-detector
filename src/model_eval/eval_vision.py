@@ -27,7 +27,7 @@ def evaluate_vision_expert():
     _, _, test_loader = get_fer_loaders()
     
     # 3. LOAD APSO RESULTS & MODEL
-    with open(CHECKPOINTS_DIR / "vision_apso_f1_results.json", "r") as f:
+    with open(CHECKPOINTS_DIR / "vision_apso_f1_results_2.json", "r") as f:
         best_params = json.load(f)
     
     model = VisionNet(
@@ -35,7 +35,7 @@ def evaluate_vision_expert():
         hidden_units=best_params['best_hidden_units']
     ).to(DEVICE)
     
-    model.load_state_dict(torch.load(MODELS_DIR / "vision_expert_best_f1.pth", map_location=DEVICE))
+    model.load_state_dict(torch.load(MODELS_DIR / "vision_expert_best_f1_2.pth", map_location=DEVICE))
     model.eval()
 
     # 4. INFERENCE
@@ -77,12 +77,12 @@ def evaluate_vision_expert():
     plt.tight_layout()
     
     # 6. SAVE EVERYTHING TO PLOTS_DIR
-    plot_filename = PLOTS_DIR / "vision_final_evaluation_f1.png"
+    plot_filename = PLOTS_DIR / "vision_final_evaluation_f1_2.png"
     plt.savefig(plot_filename)
     
     # Also save the text report for quick reference
     report = classification_report(all_labels, all_preds, target_names=class_names)
-    with open(PLOTS_DIR / "vision_classification_report_f1.txt", "w") as f:
+    with open(PLOTS_DIR / "vision_classification_report_f1_2.txt", "w") as f:
         f.write(report)
 
     print(f"\n--- Evaluation Successful ---")

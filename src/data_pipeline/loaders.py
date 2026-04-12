@@ -1,6 +1,7 @@
 import pandas as pd
+import numpy as np
 import torch
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset, DataLoader, WeightedRandomSampler
 from torchvision import transforms
 import torchaudio
 import torchaudio.transforms as AT
@@ -74,8 +75,20 @@ def get_fer_loaders():
     valid_ds = FERPlusWinnerDataset(csv_path, FER_DIR / "FER2013Valid", val_transform, usage='PublicTest')
     test_ds  = FERPlusWinnerDataset(csv_path, FER_DIR / "FER2013Test",  val_transform, usage='PrivateTest')
 
+    # Compute per-sample weights from class frequencies
+    labels = train_ds.data['label'].values
+    class_counts = np.bincount(labels)
+    class_weights = 1.0 / class_counts
+    sample_weights = torch.tensor(class_weights[labels], dtype=torch.float32)
+
+    sampler = WeightedRandomSampler(
+        weights=sample_weights,
+        num_samples=len(sample_weights),
+        replacement=True
+    )
+
     train_loader = DataLoader(
-        train_ds, batch_size=BATCH_SIZE, shuffle=True,
+        train_ds, batch_size=BATCH_SIZE, sampler=sampler,  # shuffle removed — mutually exclusive with sampler
         num_workers=8, pin_memory=True,
         persistent_workers=True, prefetch_factor=4
     )

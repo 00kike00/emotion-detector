@@ -1,0 +1,6 @@
+{
+    "best_learning_rate": 0.002327130736234736,
+    "best_dropout": 0.39649165607921677,
+    "best_hidden_units": 393,
+    "best_f1_macro": 70.55297420632505
+}

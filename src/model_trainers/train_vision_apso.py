@@ -5,6 +5,8 @@ root = Path(__file__).resolve().parent.parent.parent
 if str(root) not in sys.path:
     sys.path.append(str(root))
 
+import random
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -15,25 +17,29 @@ from src.data_pipeline.loaders import get_fer_loaders
 from src.optimization.apso import APSO
 import json
 
+SEED = 42
+
+def set_seed(seed: int):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
 # 1. THE FITNESS FUNCTION
 def evaluate_particle(params, train_loader, valid_loader):
-    """
-    This is what the APSO calls for every particle.
-    params: [learning_rate, dropout_rate, hidden_units]
-    """
     lr, dropout, hidden = params
     hidden = int(hidden)
 
     print(f"\n  [Particle] lr={lr:.6f} | dropout={dropout:.3f} | hidden={hidden}")
 
-    # Initialize Model
     model = VisionNet(dropout_rate=dropout, hidden_units=hidden).to(DEVICE)
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=lr)
 
     best_f1 = 0.0
 
-    # Train for a few epochs to see potential
     for epoch in range(PROXY_EPOCHS):
         model.train()
         running_loss = 0.0
@@ -49,7 +55,6 @@ def evaluate_particle(params, train_loader, valid_loader):
 
         avg_loss = running_loss / len(train_loader)
 
-        # Validation Phase
         model.eval()
         all_preds  = []
         all_labels = []
@@ -65,7 +70,6 @@ def evaluate_particle(params, train_loader, valid_loader):
         best_f1 = max(best_f1, f1)
         print(f"    Epoch {epoch+1}/{PROXY_EPOCHS} | Loss: {avg_loss:.4f} | F1 Macro: {f1:.2f}%")
 
-    # Clear VRAM for the next particle
     del model, optimizer
     torch.cuda.empty_cache()
 
@@ -73,19 +77,17 @@ def evaluate_particle(params, train_loader, valid_loader):
 
 # 2. MAIN EXECUTION
 if __name__ == "__main__":
+    set_seed(SEED)
+
     print(f"--- Starting APSO Hyperparameter Optimization on {DEVICE} ---")
 
-    # Load Data
     train_loader, valid_loader, _ = get_fer_loaders()
 
-    # Define Search Space: (Lower Bounds, Upper Bounds)
-    # [Learning Rate, Dropout, Hidden Units]
     bounds = (
         [1e-5, 0.2, 128],  # Min
         [1e-2, 0.6, 1024]  # Max
     )
 
-    # Initialize Optimizer
     optimizer = APSO(
         fitness_function=lambda p: evaluate_particle(p, train_loader, valid_loader),
         num_particles=10,
@@ -95,7 +97,6 @@ if __name__ == "__main__":
         alpha=0.3
     )
 
-    # Run Search
     best_config, best_score = optimizer.optimize()
 
     # 3. SAVE RESULTS
@@ -106,7 +107,7 @@ if __name__ == "__main__":
         "best_f1_macro":      float(best_score)
     }
 
-    with open(CHECKPOINTS_DIR / "vision_apso_f1_results.json", "w") as f:
+    with open(CHECKPOINTS_DIR / "vision_apso_f1_results_2.json", "w") as f:
         json.dump(results, f, indent=4)
 
     print(f"\nOptimization Complete!")

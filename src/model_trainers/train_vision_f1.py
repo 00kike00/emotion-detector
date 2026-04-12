@@ -2,6 +2,8 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import json
+import numpy as np
+import random
 from pathlib import Path
 import sys
 import matplotlib.pyplot as plt
@@ -16,9 +18,21 @@ from src.config import DEVICE, CHECKPOINTS_DIR, MODELS_DIR, BATCH_SIZE, PLOTS_DI
 from src.architectures.vision_net import VisionNet
 from src.data_pipeline.loaders import get_fer_loaders
 
+SEED = 42
+
+def set_seed(seed: int):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
 def train_final():
+    set_seed(SEED)
+
     # 1. Load APSO Results
-    with open(CHECKPOINTS_DIR / "vision_apso_f1_results.json", "r") as f:
+    with open(CHECKPOINTS_DIR / "vision_apso_f1_results_2.json", "r") as f:
         best_params = json.load(f)
     
     print(f"--- Training Final Vision Expert ---")
@@ -28,13 +42,14 @@ def train_final():
         'train_loss': [],
         'val_f1': []
     }
+
     # 2. Setup Data & Model
     train_loader, valid_loader, test_loader = get_fer_loaders()
     model = VisionNet(
         dropout_rate=best_params['best_dropout'], 
         hidden_units=best_params['best_hidden_units']
     ).to(DEVICE)
-    
+
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=best_params['best_learning_rate'])
     
@@ -44,7 +59,7 @@ def train_final():
     epochs = 100
     best_f1 = 0.0
     patience_counter = 0
-    early_stop_patience = 12
+    early_stop_patience = 20
 
     for epoch in range(epochs):
         model.train()
@@ -82,7 +97,7 @@ def train_final():
         # Save Best Model
         if val_f1 > best_f1:
             best_f1 = val_f1
-            torch.save(model.state_dict(), MODELS_DIR / "vision_expert_best_f1.pth")
+            torch.save(model.state_dict(), MODELS_DIR / "vision_expert_best_f1_2.pth")
             patience_counter = 0
             print(f"  [SAVED] New best F1 Macro: {best_f1:.2f}%")
         else:
@@ -94,7 +109,7 @@ def train_final():
 
     # 4. Final Test Evaluation
     print("\n--- Running Final Test Evaluation ---")
-    model.load_state_dict(torch.load(MODELS_DIR / "vision_expert_best_f1.pth"))
+    model.load_state_dict(torch.load(MODELS_DIR / "vision_expert_best_f1_2.pth"))
     model.eval()
     
     test_preds  = []
@@ -128,7 +143,7 @@ def train_final():
     print(f"Final Training Complete. Best Val F1 Macro: {best_f1:.2f}%")
 
     plt.tight_layout()
-    plt.savefig(PLOTS_DIR / "vision_training_f1_curves.png")
+    plt.savefig(PLOTS_DIR / "vision_training_f1_curves_2.png")
     plt.show()
 
 if __name__ == "__main__":
