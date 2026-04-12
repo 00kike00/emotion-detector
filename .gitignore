@@ -70,11 +70,7 @@ reports/
 NOTES.md
 
 # Models
-vision_expert_best_acc.pth
-vision_expert_best_f1.pth
-text_expert_best_acc.pth
-text_expert_NON_functional_const_val.pth
-audio_expert_best.pth
+*.pth
 
 # Temporay Ignore
 src/main_demo.py
