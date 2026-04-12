@@ -62,6 +62,9 @@ Thumbs.db
 # Raw data files
 data/raw/
 
+# Processed data files
+data/processed/
+
 # Documents and reports
 docs/
 reports/
@@ -71,6 +74,9 @@ NOTES.md
 
 # Models
 *.pth
+
+# Face Detector
+face_detection/
 
 # Temporay Ignore
 src/main_demo.py
