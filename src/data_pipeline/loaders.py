@@ -2,12 +2,13 @@ import pandas as pd
 import numpy as np
 import torch
 from torch.utils.data import Dataset, DataLoader, WeightedRandomSampler
+from torch.nn.utils.rnn import pad_sequence
 from torchvision import transforms
 import torchaudio
 import torchaudio.transforms as AT
 from transformers import RobertaTokenizer
 from PIL import Image
-from src.config import FER_DIR, GOEMOTIONS_DIR, RAVDESS_DIR, MELD_DIR, BATCH_SIZE
+from src.config import FER_DIR, GOEMOTIONS_DIR, RAVDESS_DIR, BATCH_SIZE, PROCESSED_DIR
 import json
 from pathlib import Path
 import soundfile as sf
@@ -381,3 +382,97 @@ def get_ravdess_loaders(val_actors=(23, 24), test_actors=(21, 22)):
                               persistent_workers=True, prefetch_factor=2)
 
     return train_loader, val_loader, test_loader
+
+
+class MELDLogitsDataset(Dataset):
+    def __init__(self, split_name: str):
+        # Load both modality files
+        vision_data = torch.load(PROCESSED_DIR / f"meld_{split_name}_vision_logits.pt")
+        text_data   = torch.load(PROCESSED_DIR / f"meld_{split_name}_text_logits.pt")
+
+        # Build id -> text_logits lookup for fast joining
+        text_lookup = {s['id']: s['text_logits'] for s in text_data}
+
+        self.samples = []
+        skipped = 0
+
+        for v_sample in vision_data:
+            uid = v_sample['id']
+            if uid not in text_lookup:
+                skipped += 1
+                continue
+
+            self.samples.append({
+                'vision_seq':  v_sample['vision_logits'],  # [T, 7]
+                'text_logits': text_lookup[uid],            # [7]
+                'label':       v_sample['label'],           # int
+            })
+
+        print(f"[MELDLogitsDataset] split={split_name} | "
+              f"Loaded={len(self.samples)} | Skipped={skipped} (id mismatch)")
+
+    def __len__(self):
+        return len(self.samples)
+
+    def __getitem__(self, idx):
+        s = self.samples[idx]
+        return (
+            s['vision_seq'],                               # [T, 7]  — variable T
+            s['text_logits'],                              # [7]
+            torch.tensor(s['label'], dtype=torch.long)    # scalar
+        )
+
+
+def collate_fn(batch):
+    """
+    Pads variable-length vision sequences within a batch.
+    Returns:
+        vision_seqs  : [B, T_max, 7]  — padded
+        lengths      : [B]            — original T per sample (for pack_padded if needed)
+        text_logits  : [B, 7]
+        labels       : [B]
+    """
+    vision_seqs, text_logits, labels = zip(*batch)
+
+    lengths     = torch.tensor([s.shape[0] for s in vision_seqs], dtype=torch.long)
+    vision_pad  = pad_sequence(vision_seqs, batch_first=True, padding_value=0.0)  # [B, T_max, 7]
+    text_stack  = torch.stack(text_logits)   # [B, 7]
+    label_stack = torch.stack(labels)        # [B]
+
+    return vision_pad, lengths, text_stack, label_stack
+
+
+def get_meld_loaders():
+    train_ds = MELDLogitsDataset("train")
+    dev_ds   = MELDLogitsDataset("dev")
+    test_ds  = MELDLogitsDataset("test")
+
+    # Weighted sampler for train to handle class imbalance
+    labels       = [s['label'] for s in train_ds.samples]
+    class_counts = np.bincount(labels)
+    class_weights  = 1.0 / class_counts
+    sample_weights = torch.tensor(class_weights[labels], dtype=torch.float32)
+
+    sampler = torch.utils.data.WeightedRandomSampler(
+        weights=sample_weights,
+        num_samples=len(sample_weights),
+        replacement=True
+    )
+
+    train_loader = DataLoader(
+        train_ds, batch_size=BATCH_SIZE, sampler=sampler,
+        collate_fn=collate_fn, num_workers=8,
+        pin_memory=True, persistent_workers=True
+    )
+    dev_loader = DataLoader(
+        dev_ds, batch_size=BATCH_SIZE, shuffle=False,
+        collate_fn=collate_fn, num_workers=4,
+        pin_memory=True, persistent_workers=True
+    )
+    test_loader = DataLoader(
+        test_ds, batch_size=BATCH_SIZE, shuffle=False,
+        collate_fn=collate_fn, num_workers=4,
+        pin_memory=True, persistent_workers=True
+    )
+
+    return train_loader, dev_loader, test_loader
