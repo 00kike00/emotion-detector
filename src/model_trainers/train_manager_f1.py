@@ -105,7 +105,7 @@ def train_final():
         # Save Best Model
         if val_f1 > best_f1:
             best_f1 = val_f1
-            torch.save(model.state_dict(), MODELS_DIR / "manager_expert_best_f1.pth")
+            torch.save(model.state_dict(), MODELS_DIR / "manager_expert_best_f1_ft.pth")
             patience_counter = 0
             print(f"  [SAVED] New best F1 Macro: {best_f1:.2f}%")
         else:
@@ -117,7 +117,7 @@ def train_final():
 
     # 4. Final Test Evaluation
     print("\n--- Running Final Test Evaluation ---")
-    model.load_state_dict(torch.load(MODELS_DIR / "manager_expert_best_f1.pth"))
+    model.load_state_dict(torch.load(MODELS_DIR / "manager_expert_best_f1_ft.pth"))
     model.eval()
     
     test_preds  = []
@@ -154,7 +154,7 @@ def train_final():
     print(f"Final Training Complete. Best Val F1 Macro: {best_f1:.2f}%")
 
     plt.tight_layout()
-    plt.savefig(PLOTS_DIR / "manager_training_f1_curves.png")
+    plt.savefig(PLOTS_DIR / "manager_training_f1_curves_ft.png")
     plt.show()
 
 if __name__ == "__main__":

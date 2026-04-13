@@ -1,3 +1,5 @@
+from xml.parsers.expat import model
+
 import torch
 from tqdm import tqdm
 from pathlib import Path
@@ -23,7 +25,8 @@ def extract_vision_features(split_name):
         hidden_units=best_params['best_hidden_units']
     ).to(DEVICE)
     
-    model.load_state_dict(torch.load(MODELS_DIR / "vision_expert_best_acc.pth", map_location=DEVICE))
+    checkpoint = torch.load(MODELS_DIR / "vision_expert_meld_finetuned.pth", map_location=DEVICE)
+    model.load_state_dict(checkpoint['state_dict'])
     model.eval()
 
     # 2. Load Face Data
@@ -46,7 +49,7 @@ def extract_vision_features(split_name):
                 'label': sample['label']
             })
 
-    output_path = PROCESSED_DIR / f"meld_{split_name}_vision_logits.pt"
+    output_path = PROCESSED_DIR / f"meld_{split_name}_vision_logits_ft.pt"
     torch.save(vision_features, output_path)
     print(f"Saved: {output_path}")
 

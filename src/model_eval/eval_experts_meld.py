@@ -22,7 +22,7 @@ def evaluate_experts_on_meld(split_name="test"):
     
     # 2. LOAD PRE-EXTRACTED LOGITS
     # These are the files you generated with the feature_extractor scripts
-    v_path = PROCESSED_DIR / f"meld_{split_name}_vision_logits.pt"
+    v_path = PROCESSED_DIR / f"meld_{split_name}_vision_logits_ft.pt"
     t_path = PROCESSED_DIR / f"meld_{split_name}_text_logits.pt"
     
     if not v_path.exists() or not t_path.exists():
@@ -86,7 +86,7 @@ def evaluate_experts_on_meld(split_name="test"):
         axes[i, 1].set_title(f'{mod.upper()} Expert: Normalized CM (%)', fontsize=14)
 
     plt.tight_layout()
-    plt.savefig(PLOTS_DIR / f"meld_independent_experts_{split_name}.png")
+    plt.savefig(PLOTS_DIR / f"meld_independent_experts_{split_name}_ft.png")
     
     # 5. PRINT REPORTS
     print("\n" + "="*30)
