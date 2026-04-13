@@ -54,9 +54,9 @@ def train_final():
     ).to(DEVICE)
 
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr=best_params['best_learning_rate'])
+    optimizer = optim.Adam(model.parameters(), lr=10 ** best_params['best_learning_rate'])
     
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max', patience=5, factor=0.5)
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max', patience=8, factor=0.4)
 
     # 3. Training Loop
     epochs = 100
@@ -90,8 +90,8 @@ def train_final():
         
         val_f1 = f1_score(all_labels, all_preds, average='macro') * 100
         val_acc = accuracy_score(all_labels, all_preds) * 100
-        val_precision = precision_score(all_labels, all_preds, average='macro') * 100
-        val_recall = recall_score(all_labels, all_preds, average='macro') * 100
+        val_precision = precision_score(all_labels, all_preds, average='macro', zero_division=0) * 100
+        val_recall = recall_score(all_labels, all_preds, average='macro', zero_division=0) * 100
 
         history['train_loss'].append(train_loss / len(train_loader))
         history['val_f1'].append(val_f1)

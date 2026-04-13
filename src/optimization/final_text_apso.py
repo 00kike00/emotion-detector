@@ -126,6 +126,8 @@ def evaluate_particle(params, train_loader, valid_loader):
 
 # 2. MAIN EXECUTION
 if __name__ == "__main__":
+    set_seed(SEED)
+    
     print(f"--- Starting APSO Hyperparameter Optimization on {DEVICE} ---")
 
     # Load Data

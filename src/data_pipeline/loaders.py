@@ -12,6 +12,7 @@ from src.config import FER_DIR, GOEMOTIONS_DIR, RAVDESS_DIR, BATCH_SIZE, PROCESS
 import json
 from pathlib import Path
 import soundfile as sf
+import random
 
 class FERPlusWinnerDataset(Dataset):
     def __init__(self, csv_file, img_dir, transform=None, usage='Training'):
@@ -115,16 +116,31 @@ def get_fer_loaders():
     return train_loader, valid_loader, test_loader
 
 
+def random_word_swap(text, p=0.1):
+    words = text.split()
+    if len(words) < 2:
+        return text
+    
+    # Decidimos cuántas veces swappear (mínimo 1 si se activa)
+    n = max(1, int(len(words) * p))
+    
+    for _ in range(n):
+        idx1, idx2 = random.sample(range(len(words)), 2)
+        words[idx1], words[idx2] = words[idx2], words[idx1]
+        
+    return " ".join(words)
+
 class TextEmotionDataset(Dataset):
     EMOTION_TO_IDX = {
         'neutral': 0, 'happiness': 1, 'surprise': 2, 'sadness': 3, 
         'anger': 4, 'disgust': 5, 'fear': 6
     }
 
-    def __init__(self, tsv_path, tokenizer, mapping_path, emotions_path, max_len=32):
+    def __init__(self, tsv_path, tokenizer, mapping_path, emotions_path, max_len=64, augment=False):
         self.tokenizer = tokenizer
         self.max_len = max_len
-        
+        self.augment = augment
+
         # 1. Load the 28 emotion names from emotions.txt
         with open(emotions_path, 'r') as f:
             idx_to_goemotions = [line.strip() for line in f if line.strip()]
@@ -174,6 +190,11 @@ class TextEmotionDataset(Dataset):
         text = str(row.text)
         label = row.label
 
+        # Random Word Swap Augmentation (only for training)
+        prob = 0.25 if label in [5, 6] else 0.10  # More augmentation for disgust/fear
+        if self.augment and random.random() < prob:
+            text = random_word_swap(text, p=0.1)
+
         encoding = self.tokenizer(
             text,
             add_special_tokens=True,
@@ -196,9 +217,9 @@ def get_text_loaders():
     mapping = GOEMOTIONS_DIR / "ekman_mapping.json"
     emotions = GOEMOTIONS_DIR / "emotions.txt"
 
-    train_ds = TextEmotionDataset(GOEMOTIONS_DIR / "train.tsv", tokenizer, mapping, emotions)
-    val_ds   = TextEmotionDataset(GOEMOTIONS_DIR / "dev.tsv",   tokenizer, mapping, emotions)
-    test_ds  = TextEmotionDataset(GOEMOTIONS_DIR / "test.tsv",  tokenizer, mapping, emotions)
+    train_ds = TextEmotionDataset(GOEMOTIONS_DIR / "train.tsv", tokenizer, mapping, emotions, augment=True)
+    val_ds   = TextEmotionDataset(GOEMOTIONS_DIR / "dev.tsv",   tokenizer, mapping, emotions, augment=False)
+    test_ds  = TextEmotionDataset(GOEMOTIONS_DIR / "test.tsv",  tokenizer, mapping, emotions, augment=False)
 
     # BATCH_SIZE//2 is used here to reduce GPU memory usage, since text models can be large. Adjust as needed.
     train_loader = DataLoader(
