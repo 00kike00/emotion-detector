@@ -30,7 +30,7 @@ def evaluate_text_expert():
     _, _, test_loader = get_text_loaders()
     
     # 3. LOAD CHECKPOINT & MODEL
-    checkpoint = torch.load(MODELS_DIR / "text_expert_best.pth", 
+    checkpoint = torch.load(MODELS_DIR / "final_text_expert_best.pth", 
                             map_location=DEVICE, weights_only=False)
     best_params = checkpoint['config']
 
@@ -84,10 +84,10 @@ def evaluate_text_expert():
     plt.tight_layout()
 
     # 6. SAVE
-    plt.savefig(PLOTS_DIR / "text_final_evaluation.png")
+    plt.savefig(PLOTS_DIR / "final_text_evaluation.png")
 
     report = classification_report(all_labels, all_preds, target_names=class_names)
-    with open(PLOTS_DIR / "text_classification_report.txt", "w") as f:
+    with open(PLOTS_DIR / "final_text_classification_report.txt", "w") as f:
         f.write(report)
 
     print(f"\n--- Evaluation Successful ---")

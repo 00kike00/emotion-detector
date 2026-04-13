@@ -76,3 +76,7 @@
 * train_manager_f1.py
 * eval_experts_meld.py
 * Folder fine_tuning
+* final_vision_apso.py
+* final_text_apso.py
+* final_train_vision.py
+* final_train_text.py
