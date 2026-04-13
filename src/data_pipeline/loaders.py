@@ -59,8 +59,16 @@ class FERPlusWinnerDataset(Dataset):
 def get_fer_loaders():
     train_transform = transforms.Compose([
         transforms.Resize((48, 48)),
-        transforms.RandomHorizontalFlip(),
+        # 1. Horizontal Flip (faces can be mirrored in videos)
+        transforms.RandomHorizontalFlip(p=0.5),
+        # 2. Small Rotation (for tilted faces in MELD)
+        transforms.RandomRotation(degrees=10),
+        # 3. Variation of Lighting and Contrast (critical for video)
+        transforms.ColorJitter(brightness=0.2, contrast=0.2),
+        # 4. Small Translations or Zooms (resiliency to framing)
+        transforms.RandomAffine(degrees=0, translate=(0.1, 0.1), scale=(0.9, 1.1)),
         transforms.ToTensor(),
+        # Normalization: FER2013 pixel values are [0, 255], we normalize to [-1, 1]
         transforms.Normalize((0.5,), (0.5,))
     ])
     
@@ -89,7 +97,7 @@ def get_fer_loaders():
     )
 
     train_loader = DataLoader(
-        train_ds, batch_size=BATCH_SIZE, sampler=sampler,  # shuffle removed — mutually exclusive with sampler
+        train_ds, batch_size=BATCH_SIZE, sampler=sampler,
         num_workers=8, pin_memory=True,
         persistent_workers=True, prefetch_factor=4
     )
