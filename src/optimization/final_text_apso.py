@@ -58,7 +58,11 @@ def evaluate_particle(params, train_loader, valid_loader):
     for param in model.roberta.parameters():
         param.requires_grad = False
 
-    # Only optimize BiLSTM + classifier
+    # Unfreeze last 2 layers of RoBERTa for potential fine-tuning
+    for param in model.roberta.encoder.layer[-2:].parameters():
+        param.requires_grad = True
+        
+    # Only optimize BiLSTM + classifier + Last 2 layers of RoBERTa
     trainable_params = filter(lambda p: p.requires_grad, model.parameters())
     optimizer = optim.Adam(trainable_params, lr=lr)
     criterion = nn.CrossEntropyLoss()
@@ -127,7 +131,7 @@ def evaluate_particle(params, train_loader, valid_loader):
 # 2. MAIN EXECUTION
 if __name__ == "__main__":
     set_seed(SEED)
-    
+
     print(f"--- Starting APSO Hyperparameter Optimization on {DEVICE} ---")
 
     # Load Data
