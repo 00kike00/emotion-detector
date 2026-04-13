@@ -54,10 +54,21 @@
 * Audio net architecture
 * Audio net trainer
 
-## 2026-04-10
+## 2026-04-11
 
 * llm_wrapper folder
 * llm_wrapper.py
 * system_prompt.txt
 * llm_demo.py
 * main_demo.py
+
+## 2026-04-12
+
+* meld_data_split.py
+* face_extraction.py
+* vision_feature_extractor.py
+* text_feature_extractor.py
+
+## 2026-04-13
+
+* train_manager_apso_f1.py
