@@ -27,10 +27,10 @@ def extract_text_features(split_name):
     print(f"\n>>> Extracting Text Logits for: {split_name.upper()}")
     
     # 1. Load Tokenizer and Model
-    checkpoint = torch.load(MODELS_DIR / "text_expert_best_acc.pth", map_location=DEVICE)
+    checkpoint = torch.load(MODELS_DIR / "final_text_expert_best.pth", map_location=DEVICE)
     best_params = checkpoint['config']
     
-    # Initialize Model with the EXACT same params used in training
+    # Initialize Model 
     model = RobertaBiLSTM(
         num_classes=7,
         hidden_dim=int(best_params['best_hidden_units']),
@@ -67,7 +67,7 @@ def extract_text_features(split_name):
                 'label': EMOTION_MAPPING[row['Emotion']]
             })
 
-    output_path = PROCESSED_DIR / f"meld_{split_name}_text_logits.pt"
+    output_path = PROCESSED_DIR / f"final_meld_{split_name}_text_logits.pt"
     torch.save(text_features, output_path)
     print(f"Saved: {output_path}")
 

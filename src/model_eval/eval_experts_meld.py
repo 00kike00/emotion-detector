@@ -21,9 +21,9 @@ def evaluate_experts_on_meld(split_name="test"):
     print(f"--- Evaluating Experts Independently on MELD ({split_name.upper()}) ---")
     
     # 2. LOAD PRE-EXTRACTED LOGITS
-    # These are the files you generated with the feature_extractor scripts
-    v_path = PROCESSED_DIR / f"meld_{split_name}_vision_logits_ft.pt"
-    t_path = PROCESSED_DIR / f"meld_{split_name}_text_logits.pt"
+    # These are the files generated with the feature_extractor scripts
+    v_path = PROCESSED_DIR / f"final_meld_{split_name}_vision_logits.pt"
+    t_path = PROCESSED_DIR / f"final_meld_{split_name}_text_logits.pt"
     
     if not v_path.exists() or not t_path.exists():
         print(f"Error: Logit files not found in {PROCESSED_DIR}")
@@ -86,7 +86,7 @@ def evaluate_experts_on_meld(split_name="test"):
         axes[i, 1].set_title(f'{mod.upper()} Expert: Normalized CM (%)', fontsize=14)
 
     plt.tight_layout()
-    plt.savefig(PLOTS_DIR / f"meld_independent_experts_{split_name}_ft.png")
+    plt.savefig(PLOTS_DIR / f"final_meld_independent_experts_{split_name}.png")
     
     # 5. PRINT REPORTS
     print("\n" + "="*30)
@@ -98,4 +98,4 @@ def evaluate_experts_on_meld(split_name="test"):
     print(classification_report(results['text']['labels'], results['text']['preds'], target_names=class_names))
 
 if __name__ == "__main__":
-    evaluate_experts_on_meld("dev") # You can use "test" as well
+    evaluate_experts_on_meld("test") # Choose Data set

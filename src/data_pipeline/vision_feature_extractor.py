@@ -17,7 +17,7 @@ def extract_vision_features(split_name):
     print(f"\n>>> Extracting Vision Logits for: {split_name.upper()}")
     
     # LOAD HYPERPARAMETERS & MODEL
-    with open(CHECKPOINTS_DIR / "vision_apso_acc_results.json", "r") as f:
+    with open(CHECKPOINTS_DIR / "final_vision_apso_results.json", "r") as f:
         best_params = json.load(f)
 
     model = VisionNet(
@@ -25,8 +25,7 @@ def extract_vision_features(split_name):
         hidden_units=best_params['best_hidden_units']
     ).to(DEVICE)
     
-    checkpoint = torch.load(MODELS_DIR / "vision_expert_meld_finetuned.pth", map_location=DEVICE)
-    model.load_state_dict(checkpoint['state_dict'])
+    model.load_state_dict(torch.load(MODELS_DIR / "final_vision_expert_best.pth", map_location=DEVICE))
     model.eval()
 
     # 2. Load Face Data
@@ -49,7 +48,7 @@ def extract_vision_features(split_name):
                 'label': sample['label']
             })
 
-    output_path = PROCESSED_DIR / f"meld_{split_name}_vision_logits_ft.pt"
+    output_path = PROCESSED_DIR / f"final_meld_{split_name}_vision_logits.pt"
     torch.save(vision_features, output_path)
     print(f"Saved: {output_path}")
 

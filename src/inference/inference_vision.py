@@ -17,7 +17,7 @@ from src.architectures.vision_net import VisionNet
 
 def run_live_vision():
     # 2. LOAD HYPERPARAMETERS & MODEL
-    with open(CHECKPOINTS_DIR / "vision_apso_f1_results.json", "r") as f:
+    with open(CHECKPOINTS_DIR / "final_vision_apso_results.json", "r") as f:
         best_params = json.load(f)
 
     model = VisionNet(
@@ -25,7 +25,7 @@ def run_live_vision():
         hidden_units=best_params['best_hidden_units']
     ).to(DEVICE)
     
-    model.load_state_dict(torch.load(MODELS_DIR / "vision_expert_best_f1.pth", map_location=DEVICE))
+    model.load_state_dict(torch.load(MODELS_DIR / "final_vision_expert_best.pth", map_location=DEVICE))
     model.eval()
 
     # 3. SETUP FACE DETECTION & TRANSFORMS
