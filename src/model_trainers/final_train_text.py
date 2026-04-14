@@ -3,7 +3,6 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.amp.autocast_mode import autocast
 from torch.amp.grad_scaler import GradScaler
-from transformers import get_linear_schedule_with_warmup
 from sklearn.metrics import f1_score, accuracy_score, precision_score, recall_score
 import json
 import sys
@@ -59,7 +58,7 @@ def train_final():
         num_classes=7, 
         hidden_dim=int(best_params['best_hidden_units']), 
         dropout=best_params['best_dropout'], 
-        pooling_mode=best_params['best_pooling_mode']
+        pooling_mode="mean"
     ).to(DEVICE)
 
     # Freeze RoBERTa initially
@@ -71,25 +70,22 @@ def train_final():
         param.requires_grad = True
 
     lr = 10 ** best_params['best_learning_rate']
+    if best_params['best_learning_rate_roberta'] is not None:
+        lr_r = 10 ** best_params['best_learning_rate_roberta']
+    else:
+        lr_r = lr
     optimizer = optim.AdamW([
         {'params': model.lstm.parameters(), 'lr': lr},
         {'params': model.classifier.parameters(), 'lr': lr},
-        {'params': model.roberta.encoder.layer[10:12].parameters(), 'lr': lr},
-        {'params': model.roberta.pooler.parameters(), 'lr': lr},
-        
-        # Earlier RoBERTa Layers (We give them a smaller LR since they were not "seen" by the APSO and to prevent catastrophic forgetting)
-        {'params': model.roberta.encoder.layer[6:10].parameters(), 'lr': lr * 0.5},
-        {'params': model.roberta.encoder.layer[0:6].parameters(), 'lr': lr * 0.1},
-        {'params': model.roberta.embeddings.parameters(), 'lr': lr * 0.1},
+        {'params': model.roberta.encoder.layer[10:12].parameters(), 'lr': lr_r},
+        {'params': model.roberta.pooler.parameters(), 'lr': lr_r},
     ], weight_decay=0.01)
 
     criterion = nn.CrossEntropyLoss()
 
     epochs = 15
     early_stop_patience = 5
-    UNFREEZE_EPOCH = 5
-    UNFREEZE_EPOCH_2 = 10
-
+    FREEZE_EPOCH = 5  # Number of epochs before freezing RoBERTa again after initial unfreezing for fine-tuning
     plateau_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max', patience=3, factor=0.5)
     scaler = GradScaler('cuda')
 
@@ -99,21 +95,13 @@ def train_final():
 
     for epoch in range(epochs):
 
-        # Unfreeze RoBERTa after warmup epochs
-        if epoch == UNFREEZE_EPOCH:
-            print("Unfreezing RoBERTa for more in depth fine-tuning...")
-            for param in model.roberta.encoder.layer[6:10].parameters():
-                param.requires_grad = True
-                plateau_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max', patience=3, factor=0.5)
-        elif epoch == UNFREEZE_EPOCH_2:
-            print("Unfreezing all RoBERTa layers for final fine-tuning...")
-            for param in model.roberta.encoder.layer[0:6].parameters():
-                param.requires_grad = True
-                plateau_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max', patience=3, factor=0.5)
-
         model.train()
         train_loss = 0.0
-        
+        if epoch == FREEZE_EPOCH:
+            print(f"\n--- Freezing RoBERTa after {FREEZE_EPOCH} epochs ---")
+            for param in model.roberta.parameters():
+                param.requires_grad = False
+
         loop = tqdm(train_loader, desc=f"Epoch {epoch+1}/{epochs}", leave=False)
         for batch in loop:
             ids    = batch['input_ids'].to(DEVICE)

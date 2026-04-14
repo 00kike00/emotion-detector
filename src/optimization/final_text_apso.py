@@ -129,7 +129,7 @@ def evaluate_particle(params, train_loader, valid_loader):
     # Clear VRAM for the next particle
     del model, optimizer, scaler
     torch.cuda.empty_cache()
-    sleep(2)
+    sleep(5)  # Small delay to ensure VRAM is cleared and let temperature stabilize
 
     return best_f1
 
@@ -172,7 +172,7 @@ if __name__ == "__main__":
         "best_f1_macro":      float(best_score)
     }
 
-    with open(CHECKPOINTS_DIR / "final_text_apso_results.json", "w") as f:
+    with open(CHECKPOINTS_DIR / "final_text_apso_results_2.json", "w") as f:
         json.dump(results, f, indent=4)
 
     print(f"\nOptimization Complete!")

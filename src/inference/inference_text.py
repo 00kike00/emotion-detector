@@ -20,7 +20,7 @@ logging.set_verbosity_error()
 def run_text_inference():
     # 2. LOAD SAVED MODEL & CONFIG
     # Note: We load the .pth we saved in train_final, which contains the config
-    checkpoint_path = MODELS_DIR / "text_expert_best.pth"
+    checkpoint_path = MODELS_DIR / "final_text_expert_best_2.pth"
     
     if not checkpoint_path.exists():
         print(f"Error: {checkpoint_path} not found. Please train the model first!")
@@ -29,7 +29,7 @@ def run_text_inference():
     checkpoint = torch.load(checkpoint_path, map_location=DEVICE)
     best_params = checkpoint['config']
     
-    # Initialize Model with the EXACT same params used in training
+    # Initialize Model
     model = RobertaBiLSTM(
         num_classes=7,
         hidden_dim=int(best_params['best_hidden_units']),

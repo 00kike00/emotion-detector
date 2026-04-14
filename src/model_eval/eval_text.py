@@ -38,7 +38,7 @@ def evaluate_text_expert():
         num_classes=7,
         hidden_dim=int(best_params['best_hidden_units']),
         dropout=best_params['best_dropout'],
-        pooling_mode=best_params['best_pooling_mode']
+        pooling_mode="max"
     ).to(DEVICE)
     
     model.load_state_dict(checkpoint['state_dict'])
