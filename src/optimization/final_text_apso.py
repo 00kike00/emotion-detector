@@ -37,15 +37,16 @@ POOLING_MODES = ['max', 'last', 'mean']
 def evaluate_particle(params, train_loader, valid_loader):
     """
     This is what the APSO calls for every particle.
-    params: [learning_rate, dropout_rate, hidden_units, pooling_mode]
+    params: [learning_rate, learning_rate_roberta, dropout_rate, hidden_units, pooling_mode]
     """
-    lr, dropout, hidden, pooling_idx = params
+    lr, lr_r, dropout, hidden, pooling_idx = params
     hidden = int(hidden)
     pooling_mode = POOLING_MODES[round(float(pooling_idx))]
 
     lr = 10 ** lr  # Convert back from log scale
+    lr_r = 10 ** lr_r  # Convert back from log scale
 
-    print(f"\n  [Particle] lr={lr:.6f} | dropout={dropout:.3f} | hidden={hidden} | pooling={pooling_mode}")
+    print(f"\n  [Particle] lr={lr:.6f} | lr_r={lr_r:.6f} | dropout={dropout:.3f} | hidden={hidden} | pooling={pooling_mode}")
 
     # Initialize Model
     model = RobertaBiLSTM(
@@ -63,8 +64,12 @@ def evaluate_particle(params, train_loader, valid_loader):
         param.requires_grad = True
         
     # Only optimize BiLSTM + classifier + Last 2 layers of RoBERTa
-    trainable_params = filter(lambda p: p.requires_grad, model.parameters())
-    optimizer = optim.Adam(trainable_params, lr=lr)
+    optimizer = optim.AdamW([
+        {'params': model.lstm.parameters(), 'lr': lr},
+        {'params': model.classifier.parameters(), 'lr': lr},
+        {'params': model.roberta.encoder.layer[-2:].parameters(), 'lr': lr_r},
+        {'params': model.roberta.pooler.parameters(), 'lr': lr_r},
+    ], weight_decay=0.01)
     criterion = nn.CrossEntropyLoss()
 
     best_f1 = 0.0
@@ -138,17 +143,17 @@ if __name__ == "__main__":
     train_loader, valid_loader, _ = get_text_loaders()
 
     # Define Search Space: (Lower Bounds, Upper Bounds)
-    # [Learning Rate, Dropout, Hidden Units, Pooling Mode]
+    # [Learning Rate, Learning Rate (RoBERTa), Dropout, Hidden Units, Pooling Mode]
     bounds = (
-        [-5, 0.1,  64, 0],   # Min, we use logarmic scale for learning rate
-        [-3, 0.5, 512, 2]    # Max, we use logarmic scale for learning rate
+        [-5, -6, 0.1,  64, 0],   # Min, we use logarmic scale for learning rate
+        [-2, -4, 0.5, 512, 2]    # Max, we use logarmic scale for learning rate
     )
 
     # Initialize Optimizer
     optimizer = APSO(
         fitness_function=lambda p: evaluate_particle(p, train_loader, valid_loader),
         num_particles=10,
-        num_dimensions=4,
+        num_dimensions=5,
         bounds=bounds,
         max_iterations=10,
         alpha=0.3
@@ -160,9 +165,10 @@ if __name__ == "__main__":
     # 3. SAVE RESULTS
     results = {
         "best_learning_rate": float(best_config[0]),
-        "best_dropout":       float(best_config[1]),
-        "best_hidden_units":  int(best_config[2]),
-        "best_pooling_mode":  POOLING_MODES[round(float(best_config[3]))],
+        "best_learning_rate_roberta": float(best_config[1]),
+        "best_dropout":       float(best_config[2]),
+        "best_hidden_units":  int(best_config[3]),
+        "best_pooling_mode":  POOLING_MODES[round(float(best_config[4]))],
         "best_f1_macro":      float(best_score)
     }
 

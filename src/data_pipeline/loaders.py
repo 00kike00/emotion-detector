@@ -221,9 +221,21 @@ def get_text_loaders():
     val_ds   = TextEmotionDataset(GOEMOTIONS_DIR / "dev.tsv",   tokenizer, mapping, emotions, augment=False)
     test_ds  = TextEmotionDataset(GOEMOTIONS_DIR / "test.tsv",  tokenizer, mapping, emotions, augment=False)
 
+    # Compute per-sample weights from class frequencies
+    labels = train_ds.df['label'].values
+    class_counts = np.bincount(labels)
+    class_weights = 1.0 / class_counts
+    sample_weights = torch.tensor(class_weights[labels], dtype=torch.float32)
+
+    sampler = WeightedRandomSampler(
+        weights=sample_weights,
+        num_samples=len(sample_weights),
+        replacement=True
+    )
+
     # BATCH_SIZE//2 is used here to reduce GPU memory usage, since text models can be large. Adjust as needed.
     train_loader = DataLoader(
-        train_ds, batch_size=BATCH_SIZE//2, shuffle=True, 
+        train_ds, batch_size=BATCH_SIZE//2, sampler=sampler, 
         num_workers=8, pin_memory=True, 
         persistent_workers=True, prefetch_factor=4
     )
