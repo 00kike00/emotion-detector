@@ -22,8 +22,8 @@ def evaluate_experts_on_meld(split_name="test"):
     
     # 2. LOAD PRE-EXTRACTED LOGITS
     # These are the files generated with the feature_extractor scripts
-    v_path = PROCESSED_DIR / f"final_meld_{split_name}_vision_logits.pt"
-    t_path = PROCESSED_DIR / f"final_meld_{split_name}_text_logits.pt"
+    v_path = PROCESSED_DIR / f"final_meld_{split_name}_vision_logits_ft.pt"
+    t_path = PROCESSED_DIR / f"final_meld_{split_name}_text_logits_ft.pt"
     
     if not v_path.exists() or not t_path.exists():
         print(f"Error: Logit files not found in {PROCESSED_DIR}")
