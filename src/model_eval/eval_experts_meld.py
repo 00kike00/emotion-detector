@@ -86,7 +86,7 @@ def evaluate_experts_on_meld(split_name="test"):
         axes[i, 1].set_title(f'{mod.upper()} Expert: Normalized CM (%)', fontsize=14)
 
     plt.tight_layout()
-    plt.savefig(PLOTS_DIR / f"final_meld_independent_experts_{split_name}_ft.png")
+    plt.savefig(PLOTS_DIR / f"final_meld_independent_experts_{split_name}_ft_question.png")
     
     # 5. PRINT REPORTS
     print("\n" + "="*30)

@@ -428,8 +428,8 @@ def get_ravdess_loaders(val_actors=(23, 24), test_actors=(21, 22)):
 class MELDLogitsDataset(Dataset):
     def __init__(self, split_name: str):
         # Load both modality files
-        vision_data = torch.load(PROCESSED_DIR / f"meld_{split_name}_vision_logits_ft.pt")
-        text_data   = torch.load(PROCESSED_DIR / f"meld_{split_name}_text_logits.pt")
+        vision_data = torch.load(PROCESSED_DIR / f"final_meld_{split_name}_vision_logits_ft.pt")
+        text_data   = torch.load(PROCESSED_DIR / f"final_meld_{split_name}_text_logits.pt")
 
         # Build id -> text_logits lookup for fast joining
         text_lookup = {s['id']: s['text_logits'] for s in text_data}

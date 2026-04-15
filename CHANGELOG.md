@@ -80,3 +80,13 @@
 * final_text_apso.py
 * final_train_vision.py
 * final_train_text.py
+
+## 2026-04-14
+
+* final_finetune_vision.py
+* final_finetune_text.py
+
+## 2026-04-15
+
+* manager_apso.py
+* train_manager.py
