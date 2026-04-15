@@ -27,7 +27,7 @@ def extract_text_features(split_name):
     print(f"\n>>> Extracting Text Logits for: {split_name.upper()}")
     
     # 1. Load Tokenizer and Model
-    checkpoint = torch.load(MODELS_DIR / "final_text_expert_best.pth", map_location=DEVICE)
+    checkpoint = torch.load(MODELS_DIR / "final_text_expert_best_ft.pth", map_location=DEVICE)
     best_params = checkpoint['config']
     
     # Initialize Model 
@@ -67,7 +67,7 @@ def extract_text_features(split_name):
                 'label': EMOTION_MAPPING[row['Emotion']]
             })
 
-    output_path = PROCESSED_DIR / f"final_meld_{split_name}_text_logits.pt"
+    output_path = PROCESSED_DIR / f"final_meld_{split_name}_text_logits_ft.pt"
     torch.save(text_features, output_path)
     print(f"Saved: {output_path}")
 

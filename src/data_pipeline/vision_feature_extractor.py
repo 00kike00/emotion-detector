@@ -25,7 +25,8 @@ def extract_vision_features(split_name):
         hidden_units=best_params['best_hidden_units']
     ).to(DEVICE)
     
-    model.load_state_dict(torch.load(MODELS_DIR / "final_vision_expert_best.pth", map_location=DEVICE))
+    checkpoint = torch.load(MODELS_DIR / "final_vision_expert_best_ft.pth", map_location=DEVICE)
+    model.load_state_dict(checkpoint['state_dict'])
     model.eval()
 
     # 2. Load Face Data
@@ -48,7 +49,7 @@ def extract_vision_features(split_name):
                 'label': sample['label']
             })
 
-    output_path = PROCESSED_DIR / f"final_meld_{split_name}_vision_logits.pt"
+    output_path = PROCESSED_DIR / f"final_meld_{split_name}_vision_logits_ft.pt"
     torch.save(vision_features, output_path)
     print(f"Saved: {output_path}")
 
