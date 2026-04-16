@@ -16,6 +16,23 @@ high_intensity(disgust).
 
 % ── Inter-modality relationship classification ────────────────────────────────
 
+% Uncertain — both confidences too low to trust anything
+modality_case(_, _, VC, TC, uncertain) :-
+    VC < 0.4, TC < 0.4, 
+
+% Irony/Sarcasm — high intensity negative face + positive text
+%    Strong negative affect with positive words is a classic irony signal
+modality_case(VE, TE, _, _, irony) :-
+    high_intensity(VE),
+    negative_emotion(VE),
+    positive_emotion(TE), !.
+
+% Irony/Sarcasm — any negative face + positive text
+modality_case(VE, TE, VC, TC, irony) :-
+    negative_emotion(VE),
+    positive_emotion(TE),
+    VC > TC, !.
+
 % Full agreement — both predict same emotion
 modality_case(E, E, _, _, agreement) :- !.
 
@@ -25,6 +42,7 @@ modality_case(VE, TE, _, _, masking) :-
     negative_emotion(VE),
     \+ negative_emotion(TE), !.
 
+% Neutral override — one modality predicts neutral, other predicts specific
 % Vision neutral, text specific → trust text
 modality_case(VE, TE, _, _, neutral_override) :-
     neutral_emotion(VE),
@@ -41,14 +59,16 @@ modality_case(VE, TE, _, _, partial) :-
 modality_case(VE, TE, _, _, partial) :-
     negative_emotion(VE), negative_emotion(TE), !.
 
-% Uncertain — both confidences below threshold
-modality_case(_, _, VC, TC, uncertain) :-
-    VC < 0.4, TC < 0.4, !.
-
 % Full conflict — opposite polarity
 modality_case(_, _, _, _, conflict).
 
 % ── Dominant emotion resolution ───────────────────────────────────────────────
+
+% Uncertain → default to neutral
+resolve(_, _, _, _, uncertain, neutral, low) :- !.
+
+% Irony → trust vision (face does not lie), medium confidence
+resolve(VE, _TE, _, _, irony, VE, medium) :- !.
 
 % Agreement → use the shared emotion, high confidence
 resolve(E, E, _, _, agreement, E, high) :- !.
@@ -65,41 +85,42 @@ resolve(VE, _TE, _, _, neutral_override, VE, medium) :- !.  % text is neutral �
 resolve(VE, _TE, VC, TC, partial, VE, medium) :- VC >= TC, !.
 resolve(_VE, TE, _VC, _TC, partial, TE, medium) :- !.
 
-% Uncertain → default to neutral
-resolve(_, _, _, _, uncertain, neutral, low) :- !.
-
 % Conflict → trust higher confidence modality
 resolve(VE, _TE, VC, TC, conflict, VE, medium) :- VC >= TC, !.
 resolve(_VE, TE, _VC, _TC, conflict, TE, medium) :- !.
 
 % ── Response strategy ─────────────────────────────────────────────────────────
 
+% Irony detected — special strategy regardless of confidence
+% Handled at top level before generic strategy rules
+response_strategy(_, _, irony, irony_aware) :- !.
+
 % High intensity negative with high confidence → empathetic priority
-response_strategy(E, high, empathetic_priority) :-
+response_strategy(E, high, _, empathetic_priority) :-
     high_intensity(E), negative_emotion(E), !.
 
 % Any negative with high confidence → acknowledge and adapt
-response_strategy(E, high, acknowledge_and_adapt) :-
+response_strategy(E, high, _, acknowledge_and_adapt) :-
     negative_emotion(E), !.
 
 % Positive with high confidence → reinforce
-response_strategy(E, high, reinforce_positive) :-
+response_strategy(E, high, _, reinforce_positive) :-
     positive_emotion(E), !.
 
 % Neutral high confidence → neutral supportive
-response_strategy(neutral, high, neutral_supportive) :- !.
+response_strategy(neutral, high, _, neutral_supportive) :- !.
 
 % Neutral override with medium — use gentle acknowledgement
 % since we are overriding a neutral signal, we are less certain
-response_strategy(E, neutral_override_conf, gentle_acknowledgement) :-
+response_strategy(E, neutral_override_conf, _, gentle_acknowledgement) :-
     negative_emotion(E), !.
-    
+
 % Medium confidence negative → gentle acknowledgement
-response_strategy(E, medium, gentle_acknowledgement) :-
+response_strategy(E, medium, _, gentle_acknowledgement) :-
     negative_emotion(E), !.
 
 % Everything else → neutral supportive
-response_strategy(_, _, neutral_supportive).
+response_strategy(_, _, _, neutral_supportive).
 
 % ── Top-level entry point ─────────────────────────────────────────────────────
 % emotion_agent(+VisionEmotion, +TextEmotion, +VisionConf, +TextConf,
