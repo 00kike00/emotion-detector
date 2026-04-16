@@ -1,7 +1,13 @@
 import ollama
 from typing import Generator
 from pathlib import Path
-from src.config import LLM_MODEL, LLM_PROMPT_PATH
+import sys
+
+root = Path(__file__).resolve().parent.parent.parent
+if str(root) not in sys.path:
+    sys.path.append(str(root))
+
+from src.config import LLM_MODEL, LLM_PROMPT_PATH, KBS_PROMPT_PATH
 
 class LLMWrapper:
     def __init__(

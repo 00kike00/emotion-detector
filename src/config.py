@@ -35,7 +35,7 @@ NUM_CLASSES = 7        # Anger, Disgust, Fear, Happiness, Sadness, Surprise, Neu
 LLM_MODEL = "gemma3:1b"
 LLM_PATH = BASE_DIR / "src" / "llm_wrapper"
 LLM_PROMPT_PATH = LLM_PATH / "system_prompt.txt"
-
+KBS_PROMPT_PATH = LLM_PATH / "system_prompt_kbs.txt"
 
 # 7. APSO SETTINGS (For Hyperparameter Optimization)
 APSO_ITERATIONS = 10

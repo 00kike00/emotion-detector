@@ -98,3 +98,7 @@
 * emotion_kbs.pl
 * emotion_kbs.py
 * test_kbs.py
+
+## 2026-04-17
+
+* system_prompt_kbs.txt
