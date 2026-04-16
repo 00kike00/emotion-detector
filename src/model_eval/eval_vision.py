@@ -77,7 +77,7 @@ def evaluate_vision_expert():
     plt.tight_layout()
     
     # 6. SAVE EVERYTHING TO PLOTS_DIR
-    plot_filename = PLOTS_DIR / "final_vision_final_evaluation.png"
+    plot_filename = PLOTS_DIR / "final_vision_evaluation.png"
     plt.savefig(plot_filename)
     
     # Also save the text report for quick reference

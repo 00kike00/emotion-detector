@@ -77,6 +77,3 @@ NOTES.md
 
 # Face Detector
 face_detection/
-
-# Temporay Ignore
-src/main_demo.py
