@@ -90,3 +90,11 @@
 
 * manager_apso.py
 * train_manager.py
+
+## 2026-04-16
+
+* inference_manager.py
+* kbs folder
+* emotion_kbs.pl
+* emotion_kbs.py
+* test_kbs.py

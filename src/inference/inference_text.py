@@ -20,7 +20,7 @@ logging.set_verbosity_error()
 def run_text_inference():
     # 2. LOAD SAVED MODEL & CONFIG
     # Note: We load the .pth we saved in train_final, which contains the config
-    checkpoint_path = MODELS_DIR / "final_text_expert_best_2.pth"
+    checkpoint_path = MODELS_DIR / "final_text_expert_best_ft.pth"
     
     if not checkpoint_path.exists():
         print(f"Error: {checkpoint_path} not found. Please train the model first!")

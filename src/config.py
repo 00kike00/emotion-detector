@@ -37,14 +37,13 @@ LLM_PATH = BASE_DIR / "src" / "llm_wrapper"
 LLM_PROMPT_PATH = LLM_PATH / "system_prompt.txt"
 
 
-# 6. APSO SETTINGS (For Hyperparameter Optimization)
+# 7. APSO SETTINGS (For Hyperparameter Optimization)
 APSO_ITERATIONS = 10
 APSO_PARTICLES = 10
 PROXY_EPOCHS = 5       # How many epochs to run for each particle test
 
-# 7. ENSURE DIRECTORIES EXIST
-CHECKPOINTS_DIR.mkdir(parents=True, exist_ok=True)
-PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
+# 8. KNOWLEDGE BASED SYSTEM
+KBS_PATH = BASE_DIR / "src" / "kbs"
 
 if __name__ == "__main__":
     print(f"--- Configuration Verified ---")
