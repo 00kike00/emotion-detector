@@ -17,6 +17,11 @@ test_cases = [
     ("sadness",   "fear",      0.58, 0.70, "Partial — both negative"),
     ("neutral",   "neutral",   0.30, 0.28, "Uncertain — both low confidence"),
     ("fear",      "fear",      0.85, 0.80, "Agreement — high intensity"),
+    ("neutral",  "sadness",   0.75, 0.60, "Neutral override — vision neutral, text sad"),
+    ("neutral",  "happiness", 0.80, 0.55, "Neutral override — vision neutral, text happy"),
+    ("anger",    "neutral",   0.65, 0.70, "Neutral override — vision angry, text neutral"),
+    ("disgust",  "happiness", 0.75, 0.40, "Irony — disgust face, happy words, high intensity"),
+    ("anger",    "happiness", 0.40, 0.65, "Conflict — angry face, happy words, text more confident"),
 ]
 
 print("=" * 60)

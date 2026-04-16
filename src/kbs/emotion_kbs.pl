@@ -18,7 +18,7 @@ high_intensity(disgust).
 
 % Uncertain — both confidences too low to trust anything
 modality_case(_, _, VC, TC, uncertain) :-
-    VC < 0.4, TC < 0.4, 
+    VC < 0.4, TC < 0.4, !.
 
 % Irony/Sarcasm — high intensity negative face + positive text
 %    Strong negative affect with positive words is a classic irony signal
@@ -129,4 +129,4 @@ response_strategy(_, _, _, neutral_supportive).
 emotion_agent(VE, TE, VC, TC, Strategy, DominantEmotion, ConfidenceLevel, Case) :-
     modality_case(VE, TE, VC, TC, Case),
     resolve(VE, TE, VC, TC, Case, DominantEmotion, ConfidenceLevel),
-    response_strategy(DominantEmotion, ConfidenceLevel, Strategy).
+    response_strategy(DominantEmotion, ConfidenceLevel, Case, Strategy).
