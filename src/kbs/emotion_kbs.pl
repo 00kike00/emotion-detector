@@ -20,27 +20,23 @@ high_intensity(disgust).
 modality_case(_, _, VC, TC, uncertain) :-
     VC < 0.4, TC < 0.4, !.
 
-% Irony/Sarcasm — high intensity negative face + positive text
-%    Strong negative affect with positive words is a classic irony signal
-modality_case(VE, TE, _, _, irony) :-
-    high_intensity(VE),
-    negative_emotion(VE),
+% Masking — sadness face + positive text
+modality_case(sadness, TE, _, _, masking) :-
     positive_emotion(TE), !.
 
-% Irony/Sarcasm — any negative face + positive text
-modality_case(VE, TE, VC, TC, irony) :-
+% Irony/Sarcasm — high intensity negative face + positive text
+%    Anger, fear, disgust with positive words = sarcasm signal.
+modality_case(VE, TE, _, _, irony) :-
     negative_emotion(VE),
-    positive_emotion(TE),
-    VC > TC, !.
+    positive_emotion(TE), !.
 
 % Full agreement — both predict same emotion
 modality_case(E, E, _, _, agreement) :- !.
 
-% Emotional masking — face negative, text neutral or positive
-% Psychologically motivated: words are easier to control than expressions
+% Masking — any negative face + neutral text
 modality_case(VE, TE, _, _, masking) :-
     negative_emotion(VE),
-    \+ negative_emotion(TE), !.
+    neutral_emotion(TE), !.
 
 % Neutral override — one modality predicts neutral, other predicts specific
 % Vision neutral, text specific → trust text
@@ -59,8 +55,13 @@ modality_case(VE, TE, _, _, partial) :-
 modality_case(VE, TE, _, _, partial) :-
     negative_emotion(VE), negative_emotion(TE), !.
 
-% Full conflict — opposite polarity
-modality_case(_, _, _, _, conflict).
+% Conflict — face positive, text negative
+modality_case(VE, TE, _, _, conflict) :-
+    positive_emotion(VE),
+    negative_emotion(TE), !.
+
+% Catch-all
+modality_case(_, _, _, _, uncertain).
 
 % ── Dominant emotion resolution ───────────────────────────────────────────────
 
@@ -112,8 +113,8 @@ response_strategy(neutral, high, _, neutral_supportive) :- !.
 
 % Neutral override with medium — use gentle acknowledgement
 % since we are overriding a neutral signal, we are less certain
-response_strategy(E, neutral_override_conf, _, gentle_acknowledgement) :-
-    negative_emotion(E), !.
+% response_strategy(E, neutral_override_conf, _, gentle_acknowledgement) :-
+%    negative_emotion(E), !.
 
 % Medium confidence negative → gentle acknowledgement
 response_strategy(E, medium, _, gentle_acknowledgement) :-

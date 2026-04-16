@@ -13,7 +13,7 @@ test_cases = [
     # (vision, text, v_conf, t_conf, description)
     ("happiness", "happiness", 0.80, 0.75, "Agreement — both happy"),
     ("sadness",   "neutral",   0.72, 0.65, "Masking — face sad, text neutral"),
-    ("anger",     "happiness", 0.60, 0.55, "Conflict — anger vs happiness"),
+    ("anger",     "happiness", 0.60, 0.55, "Irony — anger vs happiness"),
     ("sadness",   "fear",      0.58, 0.70, "Partial — both negative"),
     ("neutral",   "neutral",   0.30, 0.28, "Uncertain — both low confidence"),
     ("fear",      "fear",      0.85, 0.80, "Agreement — high intensity"),
@@ -21,7 +21,11 @@ test_cases = [
     ("neutral",  "happiness", 0.80, 0.55, "Neutral override — vision neutral, text happy"),
     ("anger",    "neutral",   0.65, 0.70, "Neutral override — vision angry, text neutral"),
     ("disgust",  "happiness", 0.75, 0.40, "Irony — disgust face, happy words, high intensity"),
-    ("anger",    "happiness", 0.40, 0.65, "Conflict — angry face, happy words, text more confident"),
+    ("sadness",   "happiness", 0.70, 0.65, "Masking — sad face, happy words"),
+    ("happiness", "anger",     0.70, 0.65, "Conflict — happy face, angry words"),
+    ("surprise",  "sadness",   0.55, 0.80, "Conflict — surprised face, sad words, text more confident"),
+    ("sadness",   "surprise",  0.65, 0.60, "Masking — sad face, surprised words (not irony)"),
+    ("neutral",   "anger",     0.60, 0.55, "Neutral override — vision neutral, text angry"),
 ]
 
 print("=" * 60)

@@ -48,7 +48,7 @@ class EmotionKBS:
 
     CASE_EXPLANATIONS = {
         'agreement':        "Both modalities agree",
-        'masking':          "Emotional masking detected — face negative, words neutral",
+        'masking':          "Emotional masking detected — face negative, words neutral or positive (sadness only)",
         'irony':            "Irony/sarcasm detected — face negative, words positive",
         'neutral_override': "Neutral overridden — trusting the specific prediction",
         'partial':          "Same emotional polarity, different specific emotion",
@@ -56,12 +56,8 @@ class EmotionKBS:
         'uncertain':        "Both experts have low confidence",
     }
 
-    def __init__(self, kb_path: str | Path | None = KBS_PATH / "emotion_kbs.pl"):
+    def __init__(self, kb_path: str | Path = KBS_PATH / "emotion_kbs.pl"):
         self.prolog = Prolog()
-
-        if kb_path is None:
-            kb_path = Path(__file__).resolve().parent / "emotion_kb.pl"
-
         self.prolog.consult(str(kb_path))
 
     def reason(
