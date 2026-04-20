@@ -27,16 +27,17 @@ def evaluate_manager():
     _, _, test_loader = get_meld_loaders()
     
     # 3. LOAD APSO RESULTS & MODEL
-    with open(CHECKPOINTS_DIR / "manager_apso_f1_results.json", "r") as f:
+    with open(CHECKPOINTS_DIR / "final_manager_apso_results.json", "r") as f:
         best_params = json.load(f)
     
     model = ManagerNet(
         dropout_rate=best_params['best_dropout'], 
-        hidden_dim=best_params['best_hidden_dim'],
+        hidden_dim=best_params['best_hidden_units'],
         num_layers=best_params['best_num_layers']
     ).to(DEVICE)
     
-    model.load_state_dict(torch.load(MODELS_DIR / "manager_expert_best_f1_ft.pth", map_location=DEVICE))
+    checkpoint = torch.load(MODELS_DIR / "final_manager_best.pth", map_location=DEVICE)
+    model.load_state_dict(checkpoint['state_dict'])
     model.eval()
 
     # 4. INFERENCE
@@ -80,12 +81,12 @@ def evaluate_manager():
     plt.tight_layout()
     
     # 6. SAVE EVERYTHING TO PLOTS_DIR
-    plot_filename = PLOTS_DIR / "manager_final_evaluation_f1_ft.png"
+    plot_filename = PLOTS_DIR / "final_manager_evaluation.png"
     plt.savefig(plot_filename)
     
     # Also save the text report for quick reference
     report = classification_report(all_labels, all_preds, target_names=class_names)
-    with open(PLOTS_DIR / "manager_classification_report_f1_ft.txt", "w") as f:
+    with open(PLOTS_DIR / "final_manager_classification_report.txt", "w") as f:
         f.write(report)
 
     print(f"\n--- Evaluation Successful ---")

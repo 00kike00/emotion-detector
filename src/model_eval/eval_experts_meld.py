@@ -22,8 +22,8 @@ def evaluate_experts_on_meld(split_name="test"):
     
     # 2. LOAD PRE-EXTRACTED LOGITS
     # These are the files generated with the feature_extractor scripts
-    v_path = PROCESSED_DIR / f"final_meld_{split_name}_vision_logits_ft.pt"
-    t_path = PROCESSED_DIR / f"final_meld_{split_name}_text_logits_ft.pt"
+    v_path = PROCESSED_DIR / f"final_meld_{split_name}_vision_logits.pt"
+    t_path = PROCESSED_DIR / f"final_meld_{split_name}_text_logits.pt"
     
     if not v_path.exists() or not t_path.exists():
         print(f"Error: Logit files not found in {PROCESSED_DIR}")
@@ -91,11 +91,17 @@ def evaluate_experts_on_meld(split_name="test"):
     # 5. PRINT REPORTS
     print("\n" + "="*30)
     print(f"VISION EXPERT ON MELD ({split_name})")
-    print(classification_report(results['vision']['labels'], results['vision']['preds'], target_names=class_names))
-    
+    vision_report = classification_report(results['vision']['labels'], results['vision']['preds'], target_names=class_names)
+    print(vision_report)
+    with open(PLOTS_DIR / f"final_meld_vision_evaluation_{split_name}.txt", "w") as f:
+        f.write(vision_report)
+
     print("\n" + "="*30)
     print(f"TEXT EXPERT ON MELD ({split_name})")
-    print(classification_report(results['text']['labels'], results['text']['preds'], target_names=class_names))
+    text_report = classification_report(results['text']['labels'], results['text']['preds'], target_names=class_names)
+    print(text_report)
+    with open(PLOTS_DIR / f"final_meld_text_evaluation_{split_name}.txt", "w") as f:
+        f.write(text_report)
 
 if __name__ == "__main__":
     evaluate_experts_on_meld("test") # Choose Data set
