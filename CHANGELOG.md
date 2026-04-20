@@ -102,3 +102,7 @@
 ## 2026-04-17
 
 * system_prompt_kbs.txt
+
+## 2026-04-19
+
+* test_llm_kbs.py
