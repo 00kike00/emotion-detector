@@ -17,6 +17,8 @@ Multimodal emotion recognition system combining facial expression and text analy
 
 Place the following files in the **`models/`** directory:
 **-**`final_vision_expert_best_ft.pth`
+**-**`final_vision_expert_best.pth`
+**-**`final_text_expert_best_ft.pth`
 **-**`final_text_expert_best.pth`
 **-**`final_manager_best.pth`
 **-**`face_detection/deploy.prototxt`
